@@ -31,12 +31,15 @@ class X3GWriter(MeshWriter):
             UM.PluginRegistry.PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(temp_gcode, None)
             temp_gcode.close()
             temp_cfg = None
+            global_stack = UM.Application.Application.getInstance().getGlobalContainerStack()
+            m_variant = global_stack.getMetaDataEntry("machine_x3g_variant")
             machine = self.gpx_machine()
-
+            Logger.log("d", "Variant %s", m_variant)
             if machine is None:
                 try:
                     temp_cfg = tempfile.NamedTemporaryFile("w", delete=False)
                     self.write_cfg(temp_cfg)
+                    Logger.log("d", "Use machine temp cfg %s", temp_cfg.name)
                     temp_cfg.close()
                 except EnvironmentError as e:
                     if temp_cfg:
@@ -53,7 +56,12 @@ class X3GWriter(MeshWriter):
             try:
                 temp_x3g = tempfile.NamedTemporaryFile("r", delete=False)
                 temp_x3g.close()
-                temp_cfg_name = temp_cfg.name if temp_cfg is not None else None
+
+                if m_variant.endswith(".ini"):
+                    temp_cfg_name = str(m_variant)
+                    Logger.log("i", "Use machine file %s", temp_cfg_name)
+                else:
+                    temp_cfg_name = temp_cfg.name if temp_cfg is not None else None
                 command = self.gpx_command(machine, temp_cfg_name, temp_gcode.name, temp_x3g.name)
                 try:
                     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
